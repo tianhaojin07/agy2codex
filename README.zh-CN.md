@@ -225,7 +225,7 @@ bash $S/codex_task.sh --resume <session-id> -m <model> -p "有两个测试挂了
 | `-i IMG` | 附一张图(可重复) |
 | `-C DIR` | 在别的目录工作,例如并行任务用单独的 `git worktree` |
 | `-m MODEL`、`-e EFFORT` | 模型和思考档位(`minimal`…`max`,默认 `xhigh`) |
-| `--resume ID` | 接着某个会话干(只接受明确的 id;`--last` 被故意拒绝) |
+| `--resume ID` | 接着某个会话干;每次续跑都要重新带 `-m MODEL`,否则退出 `2`。只接受明确的 id;`--last` 被故意拒绝 |
 | `--no-channel` | 这一单不开对讲频道 |
 
 完整列表:`bash codex_task.sh --help`。

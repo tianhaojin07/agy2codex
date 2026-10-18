@@ -229,7 +229,7 @@ bash $S/codex_task.sh --resume <session-id> -m <model> -p "Two tests fail: <past
 | `-i IMG` | Attach an image (repeatable) |
 | `-C DIR` | Work in another directory, e.g. a separate `git worktree` for parallel jobs |
 | `-m MODEL`, `-e EFFORT` | Model and reasoning effort (`minimal`…`max`, default `xhigh`) |
-| `--resume ID` | Continue a session (explicit id only; `--last` is refused on purpose) |
+| `--resume ID` | Continue a session; pass `-m MODEL` again on every resume (otherwise exit `2`). Explicit id only; `--last` is refused on purpose |
 | `--no-channel` | Don't open an intercom channel for this run |
 
 Full list: `bash codex_task.sh --help`.
