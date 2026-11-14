@@ -17,12 +17,12 @@ Codex 内建的 `codex queue` 只对交互 / daemon 会话有效（实测往 exe
 
 叫醒主线：
   第一层 `wait`（主线闲着也能被叫醒）：主线派完单顺手挂一个
-      `python codex_msg.py wait <频道>`（Claude Code 的 Bash run_in_background）。
-      它阻塞到工人有提问 / 报告 / 收工，一退出主线就收到后台任务通知。
+      `python codex_msg.py wait <频道>`（Antigravity 的 run_command，设 WaitMsBeforeAsync=500）。
+      它阻塞到工人有提问 / 报告 / 收工，一退出主线就收到后台任务完成唤醒。
       答完再挂一个。退出码见 WAIT_* 常量。
-  第二层 `codex_inbox_hook.py`（主线正在干活时即时看到）：挂在 Claude Code 的
-      `PreToolUse` 上，主线每次调工具前把各活频道的未读提问 / 报告塞进上下文。
-      它只塞不拦（`additionalContext`，不是 deny），没未读时输出 `{}`。
+  第二层 `agy_inbox_hook.py`（主线正在干活时即时看到）：挂在 Antigravity 插件的
+      `PreInvocation` 上，每次调模型前把各活频道的未读提问 / 报告通过 `injectSteps` 塞进上下文。
+      没未读时输出 `{}`，模型侧零额外开销。
 
 额度与缓存：钩子没消息时不写 stdout（模型侧零字节）；有消息时只追加一条工具结果，
 不改写历史 —— prompt cache 前缀不受影响。
@@ -331,9 +331,11 @@ REPLY_CALL = re.compile(r"codex_msg\.py[\"']?\s+(?:--root\s+\S+\s+)?(?:ask|say)\
 
 def is_reply_call(payload: dict) -> bool:
     """这条命令是不是工人在回话（ask / say）。挂住期间只放行它，否则工人永远回不了话、也解不了挂。"""
-    if payload.get("tool_name") != "Bash":
+    if payload.get("tool_name") not in ("Bash", "shell", "exec_command"):
         return False
-    return bool(REPLY_CALL.search(str((payload.get("tool_input") or {}).get("command", ""))))
+    ti = payload.get("tool_input") or {}
+    cmd = ti.get("command") or ti.get("cmd") or ""
+    return bool(REPLY_CALL.search(str(cmd)))
 
 
 def trace(payload: dict, chdir, raw: str = "") -> None:
@@ -513,7 +515,7 @@ def cmd_poll(channel: str | None) -> int:
 def cmd_wait(channel: str, timeout: float) -> int:
     """阻塞到工人出声（提问 / 报告）或收工，把内容原样打出来后退出。
 
-    这是「工人 → 主线」方向的叫醒器：主线把它挂在 Claude Code 的后台 Bash 上，
+    这是「工人 → 主线」方向的叫醒器：主线把它挂在 Antigravity 的后台 run_command 上，
     进程一退出主线就收到后台任务通知，于是闲着也能被叫醒。答完再挂一个。
     """
     chdir = None

@@ -11,7 +11,8 @@ import time
 import unittest
 from pathlib import Path
 
-SCRIPTS = Path(__file__).resolve().parent.parent / "scripts"
+REPO = Path(__file__).resolve().parent.parent
+SCRIPTS = REPO / "skills" / "dispatch-codex" / "scripts"
 TOOL = SCRIPTS / "codex_msg.py"
 
 
@@ -52,13 +53,12 @@ class ExpiredAsk(unittest.TestCase):
 
     def test_main_line_hook_stops_nagging_about_expired_ask(self):
         self.run_tool("ask", "c", "用 A 还是 B？", "--wait", "0.1")
-        env = {k: v for k, v in os.environ.items() if k != "CLAUDE_MSG_CH"}
-        payload = json.dumps({"hook_event_name": "PreToolUse", "cwd": str(self.root),
-                              "session_id": "s", "tool_name": "Bash"})
-        out = subprocess.run([sys.executable, str(SCRIPTS / "codex_inbox_hook.py")],
+        env = {k: v for k, v in os.environ.items() if k not in ("CLAUDE_MSG_CH", "CODEX_MSG_CH")}
+        payload = json.dumps({"conversationId": "conv-1", "workspacePaths": [str(self.root)]})
+        out = subprocess.run([sys.executable, str(SCRIPTS / "agy_inbox_hook.py")],
                              input=payload, capture_output=True, text=True, encoding="utf-8",
-                             env=env, cwd=self.root).stdout
-        self.assertNotIn("用 A 还是 B", out)
+                             env=env, cwd=REPO).stdout
+        self.assertEqual(json.loads(out), {})
 
 
 if __name__ == "__main__":

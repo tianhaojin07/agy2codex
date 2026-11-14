@@ -10,7 +10,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-TOOL = Path(__file__).resolve().parent.parent / "scripts" / "codex_msg.py"
+TOOL = Path(__file__).resolve().parent.parent / "skills" / "dispatch-codex" / "scripts" / "codex_msg.py"
 
 
 class Hold(unittest.TestCase):
@@ -27,11 +27,10 @@ class Hold(unittest.TestCase):
         return subprocess.run([sys.executable, str(TOOL), "--root", str(self.root), *args],
                               capture_output=True, text=True, encoding="utf-8")
 
-    def hook(self, command):
-        # payload 结构照 Codex 0.160.0 实测：tool_name = "Bash"，命令在 tool_input.command
+    def hook(self, command, tool_name="Bash"):
         env = dict(os.environ, CODEX_MSG_CH="c")
         payload = json.dumps({"hook_event_name": "PreToolUse", "cwd": str(self.root),
-                              "tool_name": "Bash", "tool_input": {"command": command}})
+                              "tool_name": tool_name, "tool_input": {"command": command}})
         out = subprocess.run([sys.executable, str(TOOL), "--root", str(self.root), "--hook"],
                              input=payload, capture_output=True, text=True, encoding="utf-8",
                              env=env, cwd=self.root)
@@ -42,8 +41,9 @@ class Hold(unittest.TestCase):
         self.assertEqual(self.hook("ls"), "deny")                 # 送达口信，挂住
         self.assertEqual(self.hook("pytest -q"), "deny")          # 挂住期间别的命令照拦
         for verb in ("ask", "say"):
-            reply = f'python3 "{TOOL}" {verb} c "收到，已停"'
-            self.assertIsNone(self.hook(reply), f"挂住时 {verb} 被拦，工人回不了话")
+            for tname in ("Bash", "exec_command"):
+                reply = f'python3 "{TOOL}" {verb} c "收到，已停"'
+                self.assertIsNone(self.hook(reply, tool_name=tname), f"挂住时 {tname}/{verb} 被拦")
         self.run_tool("say", "c", "收到，已停")                    # 回话真正执行后解挂
         self.assertIsNone(self.hook("ls"))
 

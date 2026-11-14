@@ -11,7 +11,7 @@ import threading
 import unittest
 from pathlib import Path
 
-TOOL = Path(__file__).resolve().parent.parent / "scripts" / "codex_msg.py"
+TOOL = Path(__file__).resolve().parent.parent / "skills" / "dispatch-codex" / "scripts" / "codex_msg.py"
 sys.path.insert(0, str(TOOL.parent))
 import codex_msg as cm  # noqa: E402
 

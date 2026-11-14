@@ -1,4 +1,5 @@
 .harness-tmp/
+.codex/
 .DS_Store
 __pycache__/
 node_modules/

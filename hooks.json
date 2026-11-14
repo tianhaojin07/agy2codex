@@ -1,0 +1,11 @@
+{
+  "codex-inbox": {
+    "PreInvocation": [
+      {
+        "type": "command",
+        "command": "python3 -X utf8 skills/dispatch-codex/scripts/agy_inbox_hook.py",
+        "timeout": 10
+      }
+    ]
+  }
+}
