@@ -3,5 +3,5 @@
   "displayName": "agy2codex",
   "version": "0.2.0",
   "description": "Dispatch tasks from Antigravity to headless Codex CLI workers with live two-way messaging and inbox delivery.",
-  "repository": "https://github.com/Napoleoncqf/claude2codex"
+  "repository": "https://github.com/tianhaojin07/agy2codex"
 }

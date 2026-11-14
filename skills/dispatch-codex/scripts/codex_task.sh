@@ -111,8 +111,28 @@ fi
 
 # Windows 桌面端内置 CLI 带 daemon，探测支持 --no-daemon 时自动加上，避免干扰交互端
 base_args=()
-if [ "$IS_WIN" = 1 ] && "$CODEX_BIN" --no-daemon exec --help >/dev/null 2>&1; then
-  base_args+=(--no-daemon)
+exec_help=""
+if [ "$IS_WIN" = 1 ]; then
+  exec_help="$("$CODEX_BIN" --no-daemon exec --help 2>/dev/null || true)"
+  if [ -n "$exec_help" ]; then
+    base_args+=(--no-daemon)
+  else
+    exec_help="$("$CODEX_BIN" exec --help 2>/dev/null || true)"
+  fi
+else
+  exec_help="$("$CODEX_BIN" exec --help 2>/dev/null || true)"
+fi
+
+target_dir="${workdir:-$PROJECT}"
+skip_git=0
+if ! find_root "$target_dir" >/dev/null 2>&1 && printf '%s' "$exec_help" | grep -q -- '--skip-git-repo-check'; then
+  skip_git=1
+fi
+has_trust=0
+printf '%s' "$exec_help" | grep -q -- '--trust' && has_trust=1
+has_hook_bypass=0
+if [ -z "$exec_help" ] || printf '%s' "$exec_help" | grep -q -- '--dangerously-bypass-hook-trust'; then
+  has_hook_bypass=1
 fi
 
 args=("${base_args[@]}" exec)
@@ -121,6 +141,7 @@ if [ -n "$resume_id" ]; then
 else
   args+=(-s "$sandbox")
 fi
+[ "$skip_git" = 1 ] && args+=(--skip-git-repo-check)
 [ -n "$model" ] && args+=(-m "$model")
 [ -n "$effort" ] && args+=(-c "model_reasoning_effort=\"$effort\"")
 [ "$net" = 1 ] && args+=(-c "sandbox_workspace_write.network_access=true")
@@ -128,9 +149,14 @@ fi
 if [ "$IS_WIN" = 1 ] && { [ "$unelevated" = 1 ] || [ "${CODEX_WINDOWS_SANDBOX:-}" = "unelevated" ]; }; then
   args+=(-c 'windows.sandbox="unelevated"')
 fi
-[ "$channel" = 1 ] && args+=(--dangerously-bypass-hook-trust)
+if [ "$channel" = 1 ]; then
+  [ "$has_trust" = 1 ] && args+=(--trust)
+  [ "$has_hook_bypass" = 1 ] && args+=(--dangerously-bypass-hook-trust)
+fi
 for x in ${extra_args+"${extra_args[@]}"}; do args+=("$x"); done
-for d in ${adddirs+"${adddirs[@]}"}; do args+=(--add-dir "$d"); done
+if [ -z "$resume_id" ]; then
+  for d in ${adddirs+"${adddirs[@]}"}; do args+=(--add-dir "$d"); done
+fi
 for im in ${images+"${images[@]}"}; do
   args+=(-i "$(cd "$(dirname "$im")" && pwd)/$(basename "$im")")
 done
@@ -208,12 +234,16 @@ while [ "$rc" != 0 ] && [ "$attempt" -lt "$CAP_RETRIES" ] && [ -n "$sid" ] \
   sleep "$CAP_SLEEP"
   rlog="$OUTDIR/$tag-$ts.retry$attempt.log"
   rargs=("${base_args[@]}" exec resume "$sid" -c "sandbox_mode=\"$sandbox\"")
+  [ "$skip_git" = 1 ] && rargs+=(--skip-git-repo-check)
   [ -n "$model" ] && rargs+=(-m "$model")
   [ -n "$effort" ] && rargs+=(-c "model_reasoning_effort=\"$effort\"")
   if [ "$IS_WIN" = 1 ] && { [ "$unelevated" = 1 ] || [ "${CODEX_WINDOWS_SANDBOX:-}" = "unelevated" ]; }; then
     rargs+=(-c 'windows.sandbox="unelevated"')
   fi
-  [ "$channel" = 1 ] && rargs+=(--dangerously-bypass-hook-trust)
+  if [ "$channel" = 1 ]; then
+    [ "$has_trust" = 1 ] && rargs+=(--trust)
+    [ "$has_hook_bypass" = 1 ] && rargs+=(--dangerously-bypass-hook-trust)
+  fi
   rargs+=(-o "$last")
   "$CODEX_BIN" "${rargs[@]}" "上一轮被服务端容量错误打断。从被打断处接着做完原派工单,交付格式照旧;已做完的不重做。" > "$rlog" 2>&1 < /dev/null
   rc=$?

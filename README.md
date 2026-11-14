@@ -20,7 +20,7 @@ Dispatch your locally authenticated OpenAI Codex CLI as a headless subagent from
 ## Installation
 
 ```bash
-git clone <repo-url> agy2codex
+git clone https://github.com/tianhaojin07/agy2codex.git agy2codex
 cd agy2codex
 python3 install.py
 ```

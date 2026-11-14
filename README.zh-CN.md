@@ -22,7 +22,7 @@
 克隆仓库后运行安装脚本，插件会部署到 `~/.gemini/config/plugins/agy2codex` 并自动被 Antigravity 发现（无需重启 IDE）：
 
 ```bash
-git clone <repo-url> agy2codex
+git clone https://github.com/tianhaojin07/agy2codex.git agy2codex
 cd agy2codex
 python3 install.py
 ```

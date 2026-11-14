@@ -82,6 +82,7 @@ def find_root(start) -> "Path | None":
 
 ROOT = find_root(os.environ.get("CODEX_MSG_ROOT") or Path.cwd()) or Path.cwd()
 REGISTRY = ROOT / ".harness-tmp" / "codex-msg" / "registry.json"
+EXPLICIT_ROOT: str | None = None
 
 
 PYX = Path(sys.executable).as_posix() if sys.executable else "python3"
@@ -89,13 +90,17 @@ PYX = Path(sys.executable).as_posix() if sys.executable else "python3"
 
 def tool_hint() -> str:
     """打给人看的命令里写哪条路径：本文件的绝对路径。"""
-    return str(Path(__file__).resolve()).replace("\\", "/")
+    base = str(Path(__file__).resolve()).replace("\\", "/")
+    if EXPLICIT_ROOT:
+        return f'{base} --root "{EXPLICIT_ROOT}"'
+    return base
 
 
 def set_root(path) -> None:
-    global ROOT, REGISTRY
+    global ROOT, REGISTRY, EXPLICIT_ROOT
     ROOT = Path(path).resolve()
     REGISTRY = ROOT / ".harness-tmp" / "codex-msg" / "registry.json"
+    EXPLICIT_ROOT = ROOT.as_posix()
 
 
 DEFAULT_WAIT = 900          # 工人问完默认最多等 15 分钟，超时就自己拿主意继续
@@ -326,7 +331,7 @@ HOW_TO_REPLY = (
 )
 
 
-REPLY_CALL = re.compile(r"codex_msg\.py[\"']?\s+(?:--root\s+\S+\s+)?(?:ask|say)\s")
+REPLY_CALL = re.compile(r"""codex_msg\.py["']?\s+(?:--root\s+(?:"[^"]+"|'[^']+'|\S+)\s+)?(?:ask|say)\s""")
 
 
 def is_reply_call(payload: dict) -> bool:
